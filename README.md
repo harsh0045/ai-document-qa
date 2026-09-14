@@ -1,39 +1,187 @@
-# AI Document Q&A
+# 🤖 AI Document Q&A
 
-AI-powered document question-answering system built using Java, Spring Boot, Spring AI, RAG, PostgreSQL, pgvector, and an LLM.
+Learning project to understand **Spring AI, LLMs, Gemini, and RAG** using Spring Boot.
 
-## Tech Stack
+---
 
-* Java
+# 📘 Lesson 1 — Spring Boot Setup
+
+## 🎯 Goal
+
+Create a basic Spring Boot application and understand the project structure.
+
+## 🛠️ Technologies
+
+* Java 21
 * Spring Boot
-* Spring AI
-* PostgreSQL
-* pgvector
-* LLM
 * Maven
-* Docker
+* Spring Web
 
-## Project Goal
+## 📁 Basic Structure
 
-The application will allow users to upload documents and ask questions about their content.
+```text
+ai-document-qa/
+├── src/
+│   └── main/
+│       ├── java/
+│       └── resources/
+├── pom.xml
+└── README.md
+```
 
-The system will use Retrieval-Augmented Generation (RAG) to:
+## 🚀 Create a REST API
 
-1. Read documents
-2. Split documents into smaller chunks
-3. Generate embeddings
-4. Store embeddings in a vector database
-5. Search for relevant information
-6. Send relevant information to an LLM
-7. Generate an answer
+```java
+@RestController
+public class TestController {
 
-## Current Progress
+    @GetMapping("/hello")
+    public String hello() {
+        return "Hello AI!";
+    }
+}
+```
 
-### Lesson 1 — Project Setup
+Test:
 
-* Created GitHub repository
-* Created Spring Boot application
-* Added Spring Web
-* Created basic REST API
-* Verified application runs successfully
+```text
+http://localhost:8080/hello
+```
+
+### What I learned
+
+* Spring Boot project structure
+* REST Controller
+* `@RestController`
+* `@GetMapping`
+* Maven dependencies
+* Running a Spring Boot application
+
+---
+
+# 📘 Lesson 2 — Spring AI + Gemini
+
+## 🎯 Goal
+
+Connect Spring Boot with **Google Gemini** and generate AI responses.
+
+## 🔄 Architecture
+
+```text
+Browser
+   ↓
+Spring Boot
+   ↓
+ChatClient
+   ↓
+Spring AI
+   ↓
+Gemini
+   ↓
+AI Response
+```
+
+## 📦 Main Dependency
+
+```xml
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-model-google-genai</artifactId>
+</dependency>
+```
+
+## 🔑 API Key
+
+Store the Gemini API key in `.env`:
+
+```env
+GEMINI_API_KEY=your_api_key
+```
+
+Never upload `.env` to GitHub.
+
+Add to `.gitignore`:
+
+```gitignore
+.env
+target/
+```
+
+## ⚙️ Configuration
+
+```properties
+spring.ai.google.genai.api-key=${GEMINI_API_KEY}
+spring.ai.google.genai.chat.options.model=gemini-3.6-flash
+```
+
+## 🤖 ChatClient
+
+```java
+private final ChatClient chatClient;
+
+public AiController(ChatClient.Builder builder) {
+    this.chatClient = builder.build();
+}
+```
+
+Send a question:
+
+```java
+return chatClient
+        .prompt(question)
+        .call()
+        .content();
+```
+
+### Meaning
+
+```text
+prompt() → send question
+call()   → call Gemini
+content() → get AI response
+```
+
+## 🌐 API
+
+```text
+GET /ai?question=What is Kafka?
+```
+
+Example:
+
+```text
+http://localhost:8080/ai?question=What%20is%20Kafka%3F
+```
+
+## 🧠 What I learned
+
+* What is an LLM
+* What is Gemini
+* What is Spring AI
+* API keys and `.env`
+* `ChatClient`
+* Prompts
+* Calling an LLM from Spring Boot
+
+---
+
+# 🚀 Next: Lesson 3
+
+## RAG — Document Processing
+
+We will learn:
+
+```text
+PDF
+ ↓
+Extract Text
+ ↓
+Split into Chunks
+ ↓
+Embeddings
+ ↓
+Vector Database
+```
+
+This will be the foundation of our **AI Document Q&A** application.
 
