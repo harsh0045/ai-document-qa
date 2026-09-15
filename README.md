@@ -1,87 +1,104 @@
-# AI Document Q&A — RAG with Spring AI
+# 🤖 AI Document Q&A — Spring AI + RAG
 
-A beginner-friendly **Retrieval-Augmented Generation (RAG)** application built using **Spring Boot, Spring AI, Gemini, Ollama, and a Vector Database**.
-
-The goal of this project is to understand how modern AI/RAG applications work by building the system step by step.
+A step-by-step learning project to understand how **LLMs, embeddings, vector databases, and RAG (Retrieval-Augmented Generation)** work together using Java and Spring Boot.
 
 ---
 
-## 🚀 Tech Stack
+## 🚀 Project Goal
+
+Build a simple application where a user can upload a document and ask questions about its content.
+
+### Final RAG Architecture
+
+```text
+                    PDF Document
+                         │
+                         ▼
+                  Text Extraction
+                         │
+                         ▼
+                     Chunking
+                         │
+                         ▼
+                    Embeddings
+                         │
+                         ▼
+                  PostgreSQL
+                    + pgvector
+                         │
+                         │
+User Question ───────────┘
+       │
+       ▼
+ Question Embedding
+       │
+       ▼
+ Similarity Search
+       │
+       ▼
+ Relevant Chunks
+       │
+       ▼
+      LLM
+   Gemini 3.6 Flash
+       │
+       ▼
+     Answer
+```
+
+---
+
+# 🛠️ Tech Stack
 
 * Java 21
 * Spring Boot 3.4.1
 * Spring AI 1.1.2
-* Spring Web
-* Google Gemini
-* Ollama
+* Google Gemini — Chat Model
+* Ollama — Embedding Model
+* `embeddinggemma` — Embedding Model
+* PostgreSQL
+* pgvector
 * Apache PDFBox
-* Vector Database *(coming soon)*
 * Maven
+* Docker
+* IntelliJ IDEA
+* Postman
 
 ---
 
-# 🧠 What is RAG?
+# 📚 Learning Progress
 
-RAG stands for **Retrieval-Augmented Generation**.
-
-Instead of asking an LLM to answer only from its existing knowledge, we first retrieve relevant information from our own documents and provide that information to the LLM.
-
-### RAG Flow
-
-```text
-PDF
- ↓
-Extract Text
- ↓
-Split into Chunks
- ↓
-Generate Embeddings
- ↓
-Store Vectors
- ↓
-User Question
- ↓
-Similarity Search
- ↓
-Retrieve Relevant Chunks
- ↓
-LLM
- ↓
-Final Answer
-```
+* [x] Lesson 1 — Spring Boot Setup
+* [x] Lesson 2 — LLM Integration with Gemini
+* [x] Lesson 3 — PDF Text Extraction
+* [x] Lesson 4 — Text Chunking
+* [x] Lesson 5 — Embeddings
+* [x] Lesson 6 — PostgreSQL + pgvector
+* [ ] Lesson 7 — Similarity Search
+* [ ] Lesson 8 — Complete RAG Pipeline
 
 ---
 
-# 📚 Lessons
+# 📖 Lesson 1 — Spring Boot Setup
 
-## Lesson 1 — Spring Boot Project Setup
+The first step was creating a basic Spring Boot application and understanding how a REST API works.
 
-### Goal
-
-Create the basic Spring Boot application and verify that the application is working.
-
-### What We Learned
-
-* Create a Spring Boot project
-* Configure Maven
-* Run a Spring Boot application
-* Create REST controllers
-* Create a basic GET endpoint
-
-### Example
+### Basic Endpoint
 
 ```java
-@RestController
-public class HelloController {
-
-    @GetMapping("/hello")
-    public String hello() {
-        return "Hello AI!";
-    }
+@GetMapping("/hello")
+public String hello() {
+    return "Hello AI";
 }
 ```
 
-### Test
+### Run the application
+
+```powershell
+.\mvnw spring-boot:run
+```
+
+Test:
 
 ```text
 GET http://localhost:8080/hello
@@ -89,20 +106,32 @@ GET http://localhost:8080/hello
 
 ---
 
-# Lesson 2 — LLM Integration with Spring AI + Gemini
+# 🧠 Lesson 2 — LLM Integration
 
-### Goal
+In this lesson, Spring AI was connected to **Google Gemini**.
 
-Connect our Spring Boot application with an LLM and generate AI responses.
+The `ChatClient` provides a simple interface for sending prompts to an LLM.
 
-For this project we use:
+### Controller
 
-```text
-Spring AI
-    ↓
-Google Gemini
-    ↓
-gemini-3.6-flash
+```java
+@RestController
+public class AiController {
+
+    private final ChatClient chatClient;
+
+    public AiController(ChatClient.Builder builder) {
+        this.chatClient = builder.build();
+    }
+
+    @GetMapping("/ai")
+    public String askAI(@RequestParam String question) {
+        return chatClient
+                .prompt(question)
+                .call()
+                .content();
+    }
+}
 ```
 
 ### Configuration
@@ -110,15 +139,26 @@ gemini-3.6-flash
 ```properties
 spring.ai.google.genai.api-key=${GEMINI_API_KEY}
 spring.ai.google.genai.chat.options.model=gemini-3.6-flash
+spring.ai.model.chat=google-genai
 ```
 
-The API key is stored in `.env`:
+### Environment Variable
+
+`.env`
 
 ```env
 GEMINI_API_KEY=your_api_key
 ```
 
-### Chat Flow
+The `.env` file should never be committed to GitHub.
+
+### Test
+
+```text
+GET http://localhost:8080/ai?question=What is Kafka?
+```
+
+### Key Concept
 
 ```text
 User Question
@@ -130,31 +170,13 @@ Gemini
 AI Response
 ```
 
-### Example Endpoint
-
-```text
-GET http://localhost:8080/ai?question=What is Kafka?
-```
-
-### Important Concept
-
-An **LLM (Large Language Model)** generates text based on the input prompt.
-
-In our application:
-
-```text
-Question → Gemini → Answer
-```
-
 ---
 
-# Lesson 3 — PDF Upload and Text Extraction
+# 📄 Lesson 3 — PDF Text Extraction
 
-### Goal
+The next step was extracting text from uploaded PDF documents.
 
-Allow the application to receive a PDF and extract its text.
-
-We use **Apache PDFBox** for PDF text extraction.
+Apache PDFBox was used for PDF processing.
 
 ### Dependency
 
@@ -166,14 +188,28 @@ We use **Apache PDFBox** for PDF text extraction.
 </dependency>
 ```
 
+### PDF Service
+
+```java
+@Service
+public class PdfService {
+
+    public String extractText(File file) throws IOException {
+
+        try (PDDocument document = Loader.loadPDF(file)) {
+
+            PDFTextStripper stripper = new PDFTextStripper();
+
+            return stripper.getText(document);
+        }
+    }
+}
+```
+
 ### Flow
 
 ```text
 PDF
- ↓
-MultipartFile
- ↓
-Temporary File
  ↓
 PDFBox
  ↓
@@ -186,7 +222,7 @@ Extracted Text
 POST http://localhost:8080/documents/upload
 ```
 
-### Postman
+In Postman:
 
 ```text
 Body
@@ -196,47 +232,13 @@ Body
  → select PDF
 ```
 
-### Important Concept
-
-Before we can build RAG, we need to convert the document into plain text.
-
-So:
-
-```text
-PDF → Text
-```
-
 ---
 
-# Lesson 4 — Text Chunking
+# ✂️ Lesson 4 — Text Chunking
 
-### Goal
+Large documents cannot simply be sent directly to an LLM.
 
-Split the extracted PDF text into smaller pieces called **chunks**.
-
-Instead of sending an entire document to an LLM or embedding model, we divide it into manageable pieces.
-
-### Why Chunking?
-
-For example:
-
-```text
-Large PDF
-   ↓
-1000 characters
-   ↓
-Chunk 1
-
-1000 characters
-   ↓
-Chunk 2
-
-1000 characters
-   ↓
-Chunk 3
-```
-
-This makes it possible to later search for only the relevant parts of a document.
+Therefore, the extracted text is divided into smaller pieces called **chunks**.
 
 ### Simple Chunker
 
@@ -260,268 +262,94 @@ public class TextChunker {
 }
 ```
 
-### Current Configuration
+Currently, the project uses:
 
 ```text
-Chunk Size = 1000 characters
+Chunk size = 1000 characters
 ```
 
-### Flow
+### Example
 
 ```text
-PDF
- ↓
-Extract Text
- ↓
-Text Chunker
- ↓
+Large Document
+      ↓
+1000 characters
+      ↓
 Chunk 1
+
+1000 characters
+      ↓
 Chunk 2
+
+1000 characters
+      ↓
 Chunk 3
-...
 ```
 
-### Important Note
+### Important
 
-The current implementation is a **simple character-based chunker**.
+This is a simple character-based chunking approach for learning.
 
-It can split a sentence in the middle.
+In a production RAG system, chunking can be improved using:
 
-Later, this can be improved using:
-
+* Sentence boundaries
+* Paragraph boundaries
 * Chunk overlap
-* Sentence-based splitting
-* Paragraph-based splitting
-* Token-aware splitting
-
-For learning purposes, the simple chunker is sufficient at this stage.
+* Token-based chunking
+* Semantic chunking
 
 ---
 
-# Lesson 5 — Embeddings with Ollama
+# 🔢 Lesson 5 — Embeddings
 
-## 🎯 Goal
-
-Convert text chunks into **numerical vectors** called embeddings.
-
-These vectors will later be stored in a vector database and used for semantic similarity search.
-
----
-
-## What is an Embedding?
-
-An embedding is a numerical representation of text that captures its meaning.
-
-```text
-Text
- ↓
-Embedding Model
- ↓
-Vector
-```
+An embedding converts text into a numerical vector.
 
 For example:
 
 ```text
 "Java is a programming language"
+              ↓
+         Embedding Model
+              ↓
+[0.12, -0.45, 0.78, ...]
 ```
 
-might become something conceptually like:
+The important idea is that **similar meanings produce similar vectors**.
+
+### Embedding Model
+
+Google Gemini was used for chat, but Ollama was selected for embeddings to avoid requiring Google Cloud/Vertex AI setup.
+
+Current embedding model:
 
 ```text
-[0.12, -0.45, 0.78, 0.21, ...]
-```
-
-The actual vector contains many numbers.
-
----
-
-## Why Do We Need Embeddings?
-
-RAG needs to find documents that are **semantically similar** to a user's question.
-
-For example:
-
-```text
-Document:
-"Kafka is used for event streaming."
-
-Question:
-"What is Kafka used for?"
-```
-
-Even though the exact words may differ, their meanings are related.
-
-Embeddings allow us to compare this meaning mathematically.
-
----
-
-# Chat Model vs Embedding Model
-
-This project uses **two different AI models for two different jobs**.
-
-### Gemini — Chat
-
-Gemini is responsible for generating the final answer.
-
-```text
-Question + Retrieved Context
-          ↓
-       Gemini
-          ↓
-       Answer
-```
-
-### Ollama — Embeddings
-
-Ollama is responsible for converting text into vectors.
-
-```text
-Text Chunk
-    ↓
-Ollama
-    ↓
 embeddinggemma
-    ↓
+```
+
+### Ollama
+
+Ollama runs the embedding model locally.
+
+```text
+Text
+ ↓
+Ollama
+ ↓
+embeddinggemma
+ ↓
 Vector
 ```
 
-Therefore:
-
-```text
-Gemini → Generate answers
-
-Ollama → Generate embeddings
-```
-
----
-
-# Why Ollama for Embeddings?
-
-Google Gemini embeddings required additional Google Cloud configuration for this setup.
-
-For learning purposes, Ollama allows us to run the embedding model locally.
-
-This gives us:
-
-* Local embedding generation
-* No separate cloud embedding service
-* Easy experimentation
-* Same Spring AI application
-
----
-
-# Step 1 — Install Ollama
-
-Check whether Ollama is installed:
-
-```bash
-ollama --version
-```
-
----
-
-# Step 2 — Download Embedding Model
-
-Pull the embedding model:
-
-```bash
-ollama pull embeddinggemma
-```
-
-Check installed models:
-
-```bash
-ollama list
-```
-
-You should see:
-
-```text
-embeddinggemma
-```
-
----
-
-# Step 3 — Add Ollama Dependency
-
-Add the Spring AI Ollama starter to `pom.xml`:
-
-```xml
-<dependency>
-    <groupId>org.springframework.ai</groupId>
-    <artifactId>spring-ai-starter-model-ollama</artifactId>
-</dependency>
-```
-
-We keep Gemini because Gemini is still being used for chat:
-
-```xml
-<dependency>
-    <groupId>org.springframework.ai</groupId>
-    <artifactId>spring-ai-starter-model-google-genai</artifactId>
-</dependency>
-```
-
-### Important
-
-Do **not** keep the Google GenAI embedding starter because embeddings are now handled by Ollama.
-
----
-
-# Step 4 — Configure Gemini + Ollama
-
-`application.properties`:
+### Configuration
 
 ```properties
-spring.application.name=ai-document-qa
-
-# =========================
-# Gemini - Chat Model
-# =========================
-spring.ai.google.genai.api-key=${GEMINI_API_KEY}
-spring.ai.google.genai.chat.options.model=gemini-3.6-flash
-
-# =========================
-# Ollama - Embedding Model
-# =========================
 spring.ai.ollama.base-url=http://localhost:11434
 
 spring.ai.model.embedding=ollama
 spring.ai.ollama.embedding.options.model=embeddinggemma
-
-# Use Gemini for Chat
-spring.ai.model.chat=google-genai
 ```
 
-### Important
-
-We explicitly tell Spring AI:
-
-```properties
-spring.ai.model.chat=google-genai
-```
-
-and:
-
-```properties
-spring.ai.model.embedding=ollama
-```
-
-This is important because both Gemini and Ollama can provide chat models.
-
-Without selecting the chat model, Spring may find:
-
-```text
-googleGenAiChatModel
-ollamaChatModel
-```
-
-and fail because it does not know which one to use.
-
----
-
-# Step 5 — Create Embedding Service
+### Embedding Service
 
 ```java
 @Service
@@ -539,209 +367,414 @@ public class EmbeddingService {
 }
 ```
 
-### What happens here?
-
-```text
-Text
- ↓
-EmbeddingModel
- ↓
-Ollama
- ↓
-embeddinggemma
- ↓
-float[]
-```
-
----
-
-# Step 6 — Create Embedding Controller
-
-```java
-@RestController
-@RequestMapping("/embedding")
-public class EmbeddingController {
-
-    private final EmbeddingService embeddingService;
-
-    public EmbeddingController(EmbeddingService embeddingService) {
-        this.embeddingService = embeddingService;
-    }
-
-    @GetMapping
-    public String generateEmbedding(@RequestParam String text) {
-
-        float[] vector = embeddingService.generateEmbedding(text);
-
-        return "Vector dimensions: " + vector.length;
-    }
-}
-```
-
----
-
-# Step 7 — Run the Application
-
-Clean the project:
-
-```bash
-./mvnw clean
-```
-
-Start Spring Boot:
-
-```bash
-./mvnw spring-boot:run
-```
-
----
-
-# Step 8 — Test Embeddings
-
-Use:
+### Test Endpoint
 
 ```text
 GET http://localhost:8080/embedding?text=Java is a programming language
 ```
 
-Expected response:
+The application returns the number of dimensions in the generated vector.
+
+### Key Concept
 
 ```text
-Vector dimensions: ...
+Text
+ ↓
+Embedding Model
+ ↓
+Numerical Vector
 ```
-
-The exact number of dimensions depends on the embedding model.
 
 ---
 
-# Complete Lesson 5 Flow
+# 🗄️ Lesson 6 — PostgreSQL + pgvector
+
+Now the generated embeddings need to be stored somewhere.
+
+For this project, **PostgreSQL + pgvector** is being used as the vector database.
+
+## Why pgvector?
+
+PostgreSQL normally stores relational data.
+
+The `pgvector` extension allows PostgreSQL to store and search vector embeddings.
 
 ```text
-Text Chunk
-    ↓
-EmbeddingService
-    ↓
-Spring AI EmbeddingModel
-    ↓
-Ollama
-    ↓
-embeddinggemma
-    ↓
+PostgreSQL
+     +
+ pgvector
+     ↓
+Vector Database
+```
+
+---
+
+## 🐳 Run PostgreSQL with Docker
+
+The project uses the Docker image:
+
+```text
+pgvector/pgvector:pg17
+```
+
+The Windows host port is **5434** because port `5433` was already being used by an existing local PostgreSQL installation.
+
+```powershell
+docker run --name rag-postgres `
+  -e POSTGRES_USER=postgres `
+  -e POSTGRES_PASSWORD=postgres `
+  -e POSTGRES_DB=ragdb `
+  -p 5434:5432 `
+  -d pgvector/pgvector:pg17
+```
+
+### Port Mapping
+
+```text
+Windows
+5434
+  ↓
+Docker
+5432
+  ↓
+PostgreSQL
+```
+
+Check the container:
+
+```powershell
+docker ps
+```
+
+Expected:
+
+```text
+0.0.0.0:5434->5432/tcp
+```
+
+---
+
+## 🔌 Connect to PostgreSQL
+
+```powershell
+docker exec -it rag-postgres psql -U postgres -d ragdb
+```
+
+Create the pgvector extension:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+Check installed extensions:
+
+```sql
+\dx
+```
+
+Exit:
+
+```sql
+\q
+```
+
+---
+
+# 📦 Spring AI PGVector Dependency
+
+Add:
+
+```xml
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-vector-store-pgvector</artifactId>
+</dependency>
+```
+
+PostgreSQL JDBC driver:
+
+```xml
+<dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <scope>runtime</scope>
+</dependency>
+```
+
+---
+
+# ⚙️ PostgreSQL Configuration
+
+`application.properties`
+
+```properties
+spring.datasource.url=jdbc:postgresql://127.0.0.1:5434/ragdb
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+
+spring.ai.vectorstore.pgvector.initialize-schema=true
+```
+
+### Complete Provider Configuration
+
+```properties
+# PostgreSQL
+spring.datasource.url=jdbc:postgresql://127.0.0.1:5434/ragdb
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+
+# PGVector
+spring.ai.vectorstore.pgvector.initialize-schema=true
+
+# Gemini - Chat Model
+spring.ai.google.genai.api-key=${GEMINI_API_KEY}
+spring.ai.google.genai.chat.options.model=gemini-3.6-flash
+
+# Ollama - Embedding Model
+spring.ai.ollama.base-url=http://localhost:11434
+spring.ai.model.embedding=ollama
+spring.ai.ollama.embedding.options.model=embeddinggemma
+
+# Chat Provider
+spring.ai.model.chat=google-genai
+```
+
+---
+
+# 💾 Store Documents in Vector Database
+
+Spring AI provides the `VectorStore` abstraction.
+
+### VectorStore Service
+
+```java
+@Service
+public class VectorStoreService {
+
+    private final VectorStore vectorStore;
+
+    public VectorStoreService(VectorStore vectorStore) {
+        this.vectorStore = vectorStore;
+    }
+
+    public void saveChunks(List<String> chunks) {
+
+        List<Document> documents = chunks.stream()
+                .map(Document::new)
+                .toList();
+
+        vectorStore.add(documents);
+    }
+}
+```
+
+### Controller
+
+```java
+@RestController
+@RequestMapping("/vector")
+public class VectorController {
+
+    private final VectorStoreService vectorStoreService;
+
+    public VectorController(VectorStoreService vectorStoreService) {
+        this.vectorStoreService = vectorStoreService;
+    }
+
+    @PostMapping("/save")
+    public String save(@RequestBody List<String> chunks) {
+
+        vectorStoreService.saveChunks(chunks);
+
+        return "Chunks saved successfully";
+    }
+}
+```
+
+### Test Request
+
+```text
+POST http://localhost:8080/vector/save
+```
+
+Body → raw → JSON:
+
+```json
+[
+    "Java is a programming language.",
+    "Spring Boot is used to build Java backend applications.",
+    "Kafka is a distributed event streaming platform."
+]
+```
+
+---
+
+# 🔍 What Happens Internally?
+
+When chunks are added to the `VectorStore`:
+
+```text
+Chunk
+ ↓
+Embedding Model
+ ↓
 Vector
+ ↓
+PostgreSQL + pgvector
 ```
+
+Spring AI handles the interaction with the embedding model and vector store.
 
 ---
 
-# Current RAG Architecture
+# 🧠 Current Architecture
 
-After completing Lesson 5, our application looks like:
-
-```text
-                    ┌─────────────────────┐
-                    │   Gemini 3.6 Flash  │
-                    │      Chat Model     │
-                    └──────────▲──────────┘
-                               │
-                               │
-PDF → PDFBox → Text → Chunks ──┼──→ RAG
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │      Ollama         │
-                    │   embeddinggemma   │
-                    │  Embedding Model    │
-                    └─────────────────────┘
-                               │
-                               ▼
-                            Vectors
-```
-
----
-
-# 🗺️ RAG Learning Progress
-
-```text
-Lesson 1
-Spring Boot
-    ↓
-Lesson 2
-Spring AI + Gemini
-    ↓
-Lesson 3
-PDF → Text
-    ↓
-Lesson 4
-Text → Chunks
-    ↓
-Lesson 5
-Chunks → Ollama Embeddings
-    ↓
-Lesson 6
-Vector Database
-    ↓
-Lesson 7
-Similarity Search
-    ↓
-Lesson 8
-Complete RAG
-```
-
----
-
-# 🎯 What We Have Learned So Far
-
-By the end of Lesson 5, we understand:
-
-* Spring Boot REST APIs
-* Spring AI basics
-* LLM integration
-* Gemini chat model
-* PDF text extraction
-* Text chunking
-* Embeddings
-* Embedding models
-* Ollama
-* `embeddinggemma`
-* Difference between Chat Models and Embedding Models
-* Converting text into vectors
-
----
-
-# 🔜 Next Lesson
-
-## Lesson 6 — Vector Database
-
-In the next lesson we will learn:
-
-```text
-Chunks
-   ↓
-Embeddings
-   ↓
-Vector Database
-```
-
-We will store our document embeddings so that we can later search them using a user's question.
-
-The complete RAG pipeline will eventually become:
+At the end of Lesson 6, the project has learned these individual components:
 
 ```text
 PDF
  ↓
 Text Extraction
  ↓
-Chunking
+Text Chunks
  ↓
 Embeddings
  ↓
-Vector Database
- ↓
+PostgreSQL + pgvector
+```
+
+The missing part is retrieving the most relevant chunks for a user's question.
+
+---
+
+# 🔜 Lesson 7 — Similarity Search
+
+The next lesson will implement:
+
+```text
+User Question
+      ↓
+Question Embedding
+      ↓
+Vector Similarity Search
+      ↓
+pgvector
+      ↓
+Most Relevant Chunks
+```
+
+For example:
+
+```text
+Question:
+"What is Kafka?"
+        ↓
+Embedding
+        ↓
+Search Vector Database
+        ↓
+Relevant Chunk:
+"Kafka is a distributed event streaming platform..."
+```
+
+---
+
+# 🎯 Lesson 8 — Complete RAG
+
+Finally, the retrieved chunks will be sent to Gemini along with the user's question.
+
+```text
+User Question
+      ↓
+Embedding
+      ↓
 Similarity Search
- ↓
-Relevant Context
- ↓
+      ↓
+Relevant Documents
+      ↓
+Context + Question
+      ↓
 Gemini
- ↓
+      ↓
 Final Answer
 ```
+
+This is the complete **Retrieval-Augmented Generation (RAG)** pipeline.
+
+---
+
+# 🔐 Security
+
+Never commit API keys or secrets.
+
+`.gitignore`:
+
+```gitignore
+.env
+target/
+.idea/
+*.iml
+.vscode/
+```
+
+Keep:
+
+```env
+GEMINI_API_KEY=your_api_key
+```
+
+inside `.env` and never push it to GitHub.
+
+---
+
+# 📌 Key Concepts Learned
+
+### LLM
+
+A Large Language Model generates responses based on the input prompt.
+
+### Embedding
+
+Converts text into numerical vectors representing its meaning.
+
+### Vector Database
+
+Stores embeddings and allows similarity searches.
+
+### pgvector
+
+PostgreSQL extension for storing and searching vectors.
+
+### RAG
+
+Combines retrieval from external knowledge with LLM generation.
+
+```text
+Retrieve relevant information
+             +
+Generate answer using LLM
+             =
+             RAG
+```
+
+---
+
+# 🏁 Current Status
+
+**Completed:** Lessons 1–6 ✅
+
+The application currently has:
+
+* Spring Boot REST API
+* Gemini LLM integration
+* PDF text extraction
+* Text chunking
+* Ollama embeddings
+* `embeddinggemma`
+* PostgreSQL
+* pgvector
+* Spring AI VectorStore
+* Docker-based PostgreSQL
+
+**Next:** Similarity Search → Complete RAG 🚀
 
