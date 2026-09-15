@@ -1,35 +1,32 @@
 # 🤖 AI Document Q&A
 
-Learning project to understand **Spring AI, LLMs, Gemini, and RAG** using Spring Boot.
+Learning project to understand **Spring AI, Gemini, and RAG** using Spring Boot.
 
 ---
 
 # 📘 Lesson 1 — Spring Boot Setup
 
-## 🎯 Goal
+### 🎯 Goal
 
-Create a basic Spring Boot application and understand the project structure.
+Create a basic Spring Boot application and REST API.
 
-## 🛠️ Technologies
+### 🛠️ Technologies
 
 * Java 21
 * Spring Boot
 * Maven
 * Spring Web
 
-## 📁 Basic Structure
+### 📁 Project Structure
 
 ```text
 ai-document-qa/
 ├── src/
-│   └── main/
-│       ├── java/
-│       └── resources/
 ├── pom.xml
 └── README.md
 ```
 
-## 🚀 Create a REST API
+### 🚀 REST API
 
 ```java
 @RestController
@@ -48,24 +45,24 @@ Test:
 http://localhost:8080/hello
 ```
 
-### What I learned
+### 🧠 What I learned
 
-* Spring Boot project structure
+* Spring Boot basics
 * REST Controller
 * `@RestController`
 * `@GetMapping`
-* Maven dependencies
+* Maven
 * Running a Spring Boot application
 
 ---
 
 # 📘 Lesson 2 — Spring AI + Gemini
 
-## 🎯 Goal
+### 🎯 Goal
 
-Connect Spring Boot with **Google Gemini** and generate AI responses.
+Connect Spring Boot with **Google Gemini** and get AI responses.
 
-## 🔄 Architecture
+### 🔄 Architecture
 
 ```text
 Browser
@@ -81,7 +78,7 @@ Gemini
 AI Response
 ```
 
-## 📦 Main Dependency
+### 📦 Dependency
 
 ```xml
 <dependency>
@@ -90,7 +87,7 @@ AI Response
 </dependency>
 ```
 
-## 🔑 API Key
+### 🔑 API Key
 
 Store the Gemini API key in `.env`:
 
@@ -100,31 +97,21 @@ GEMINI_API_KEY=your_api_key
 
 Never upload `.env` to GitHub.
 
-Add to `.gitignore`:
+`.gitignore`:
 
 ```gitignore
 .env
 target/
 ```
 
-## ⚙️ Configuration
+### ⚙️ Gemini Configuration
 
 ```properties
 spring.ai.google.genai.api-key=${GEMINI_API_KEY}
 spring.ai.google.genai.chat.options.model=gemini-3.6-flash
 ```
 
-## 🤖 ChatClient
-
-```java
-private final ChatClient chatClient;
-
-public AiController(ChatClient.Builder builder) {
-    this.chatClient = builder.build();
-}
-```
-
-Send a question:
+### 🤖 ChatClient
 
 ```java
 return chatClient
@@ -133,55 +120,143 @@ return chatClient
         .content();
 ```
 
-### Meaning
+Simple meaning:
 
 ```text
-prompt() → send question
-call()   → call Gemini
-content() → get AI response
+prompt()  → send question
+call()    → call Gemini
+content() → get response
 ```
 
-## 🌐 API
+### 🌐 API
 
 ```text
 GET /ai?question=What is Kafka?
 ```
 
-Example:
+### 🧠 What I learned
 
-```text
-http://localhost:8080/ai?question=What%20is%20Kafka%3F
-```
-
-## 🧠 What I learned
-
-* What is an LLM
-* What is Gemini
-* What is Spring AI
-* API keys and `.env`
+* LLM
+* Google Gemini
+* Spring AI
+* API keys
+* `.env`
 * `ChatClient`
-* Prompts
+* Prompt
 * Calling an LLM from Spring Boot
 
 ---
 
-# 🚀 Next: Lesson 3
+# 📘 Lesson 3 — PDF Text Extraction
 
-## RAG — Document Processing
+### 🎯 Goal
 
-We will learn:
+Read a PDF and extract its text.
+
+### 🔄 Flow
 
 ```text
 PDF
  ↓
+PDFBox
+ ↓
 Extract Text
  ↓
-Split into Chunks
- ↓
-Embeddings
- ↓
-Vector Database
+Plain Text
 ```
 
-This will be the foundation of our **AI Document Q&A** application.
+### 📦 Dependency
+
+```xml
+<dependency>
+    <groupId>org.apache.pdfbox</groupId>
+    <artifactId>pdfbox</artifactId>
+    <version>3.0.6</version>
+</dependency>
+```
+
+### 🔧 PDF Service
+
+We use:
+
+```java
+PDFTextStripper
+```
+
+to extract text from the PDF.
+
+Basic flow:
+
+```java
+try (PDDocument document = Loader.loadPDF(file)) {
+
+    PDFTextStripper stripper = new PDFTextStripper();
+
+    return stripper.getText(document);
+}
+```
+
+### 🌐 Upload API
+
+```text
+POST /documents/upload
+```
+
+In Postman:
+
+```text
+Body
+ ↓
+form-data
+ ↓
+key = file
+ ↓
+type = File
+ ↓
+Select PDF
+```
+
+### 🧠 What I learned
+
+* PDF upload using `MultipartFile`
+* Apache PDFBox
+* `PDDocument`
+* `PDFTextStripper`
+* Extracting text from PDF
+* Creating a file upload REST API
+
+---
+
+# 🏗️ Current RAG Progress
+
+```text
+Lesson 1
+Spring Boot
+    ↓
+Lesson 2
+Gemini / LLM
+    ↓
+Lesson 3
+PDF → Text
+    ↓
+Lesson 4
+Text → Chunks
+    ↓
+Lesson 5
+Embeddings
+    ↓
+Lesson 6
+Vector Database
+    ↓
+Lesson 7
+RAG
+```
+
+---
+
+# 🚀 Next Lesson
+
+## Lesson 4 — Text Chunking
+
+We will learn how to split large PDF text into smaller **chunks** so that we can later search for relevant information.
 
