@@ -1,10 +1,12 @@
 # 🤖 AI Document Q&A
 
-Learning project to understand **Spring AI, Gemini, and RAG** using Spring Boot.
+A learning project to understand **Spring AI, Google Gemini, and RAG** using Spring Boot.
 
 ---
 
-# 📘 Lesson 1 — Spring Boot Setup
+# 📚 Lessons
+
+## Lesson 1 — Spring Boot Setup
 
 ### 🎯 Goal
 
@@ -16,15 +18,6 @@ Create a basic Spring Boot application and REST API.
 * Spring Boot
 * Maven
 * Spring Web
-
-### 📁 Project Structure
-
-```text
-ai-document-qa/
-├── src/
-├── pom.xml
-└── README.md
-```
 
 ### 🚀 REST API
 
@@ -45,24 +38,24 @@ Test:
 http://localhost:8080/hello
 ```
 
-### 🧠 What I learned
+### 🧠 Learned
 
 * Spring Boot basics
-* REST Controller
+* REST API
 * `@RestController`
 * `@GetMapping`
 * Maven
-* Running a Spring Boot application
+* Project structure
 
 ---
 
-# 📘 Lesson 2 — Spring AI + Gemini
+# Lesson 2 — Spring AI + Gemini
 
 ### 🎯 Goal
 
-Connect Spring Boot with **Google Gemini** and get AI responses.
+Connect Spring Boot with **Google Gemini** and generate AI responses.
 
-### 🔄 Architecture
+### 🔄 Flow
 
 ```text
 Browser
@@ -89,7 +82,7 @@ AI Response
 
 ### 🔑 API Key
 
-Store the Gemini API key in `.env`:
+Store the API key in `.env`:
 
 ```env
 GEMINI_API_KEY=your_api_key
@@ -104,7 +97,7 @@ Never upload `.env` to GitHub.
 target/
 ```
 
-### ⚙️ Gemini Configuration
+### ⚙️ Configuration
 
 ```properties
 spring.ai.google.genai.api-key=${GEMINI_API_KEY}
@@ -120,12 +113,12 @@ return chatClient
         .content();
 ```
 
-Simple meaning:
+Meaning:
 
 ```text
-prompt()  → send question
-call()    → call Gemini
-content() → get response
+prompt()  → Send question
+call()    → Call Gemini
+content() → Get response
 ```
 
 ### 🌐 API
@@ -134,24 +127,24 @@ content() → get response
 GET /ai?question=What is Kafka?
 ```
 
-### 🧠 What I learned
+### 🧠 Learned
 
 * LLM
 * Google Gemini
 * Spring AI
+* ChatClient
+* Prompts
 * API keys
 * `.env`
-* `ChatClient`
-* Prompt
 * Calling an LLM from Spring Boot
 
 ---
 
-# 📘 Lesson 3 — PDF Text Extraction
+# Lesson 3 — PDF Text Extraction
 
 ### 🎯 Goal
 
-Read a PDF and extract its text.
+Upload a PDF and extract its text.
 
 ### 🔄 Flow
 
@@ -175,17 +168,14 @@ Plain Text
 </dependency>
 ```
 
-### 🔧 PDF Service
+### 🔧 Main Classes
 
-We use:
-
-```java
+```text
+PDDocument
 PDFTextStripper
 ```
 
-to extract text from the PDF.
-
-Basic flow:
+Example:
 
 ```java
 try (PDDocument document = Loader.loadPDF(file)) {
@@ -202,7 +192,7 @@ try (PDDocument document = Loader.loadPDF(file)) {
 POST /documents/upload
 ```
 
-In Postman:
+Using Postman:
 
 ```text
 Body
@@ -211,43 +201,121 @@ form-data
  ↓
 key = file
  ↓
-type = File
+Type = File
  ↓
 Select PDF
 ```
 
-### 🧠 What I learned
+### 🧠 Learned
 
-* PDF upload using `MultipartFile`
+* `MultipartFile`
 * Apache PDFBox
-* `PDDocument`
-* `PDFTextStripper`
-* Extracting text from PDF
-* Creating a file upload REST API
+* Reading PDF files
+* Extracting text
+* File upload REST API
 
 ---
 
-# 🏗️ Current RAG Progress
+# Lesson 4 — Text Chunking
+
+### 🎯 Goal
+
+Split large PDF text into smaller pieces called **chunks**.
+
+### ❓ Why Chunking?
+
+A large PDF may contain thousands of words. Instead of using the entire document, we divide it into smaller parts.
+
+```text
+PDF
+ ↓
+Extract Text
+ ↓
+┌─────────┐
+│ Chunk 1 │
+├─────────┤
+│ Chunk 2 │
+├─────────┤
+│ Chunk 3 │
+├─────────┤
+│ Chunk 4 │
+└─────────┘
+```
+
+### 🔧 TextChunker
+
+```java
+@Service
+public class TextChunker {
+
+    public List<String> splitText(String text, int chunkSize) {
+
+        List<String> chunks = new ArrayList<>();
+
+        for (int start = 0; start < text.length(); start += chunkSize) {
+
+            int end = Math.min(start + chunkSize, text.length());
+
+            chunks.add(text.substring(start, end));
+        }
+
+        return chunks;
+    }
+}
+```
+
+### Example
+
+If:
+
+```text
+Text = 5000 characters
+Chunk size = 1000
+```
+
+Then:
+
+```text
+5000 characters
+      ↓
+Chunk 1 → 1000
+Chunk 2 → 1000
+Chunk 3 → 1000
+Chunk 4 → 1000
+Chunk 5 → 1000
+```
+
+### 🧠 Learned
+
+* What is chunking
+* Why chunking is needed in RAG
+* Chunk size
+* Splitting large text into smaller pieces
+* Preparing documents for embeddings
+
+---
+
+# 🏗️ RAG Progress
 
 ```text
 Lesson 1
 Spring Boot
-    ↓
+     ↓
 Lesson 2
-Gemini / LLM
-    ↓
+Spring AI + Gemini
+     ↓
 Lesson 3
 PDF → Text
-    ↓
+     ↓
 Lesson 4
 Text → Chunks
-    ↓
+     ↓
 Lesson 5
 Embeddings
-    ↓
+     ↓
 Lesson 6
 Vector Database
-    ↓
+     ↓
 Lesson 7
 RAG
 ```
@@ -256,7 +324,17 @@ RAG
 
 # 🚀 Next Lesson
 
-## Lesson 4 — Text Chunking
+## Lesson 5 — Embeddings
 
-We will learn how to split large PDF text into smaller **chunks** so that we can later search for relevant information.
+We will learn:
+
+```text
+Text Chunk
+    ↓
+Embedding Model
+    ↓
+Vector
+```
+
+These vectors will allow our application to find **similar and relevant information** from the uploaded documents.
 

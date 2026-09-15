@@ -1,21 +1,28 @@
 package com.example.ai_document_qa.controller;
 
 import com.example.ai_document_qa.service.PdfService;
+import com.example.ai_document_qa.service.TextChunker;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/documents")
 public class PdfController {
 
     private final PdfService pdfService;
+    private final TextChunker textChunker;
 
-    public PdfController(PdfService pdfService) {
+    public PdfController(
+            PdfService pdfService,
+            TextChunker textChunker) {
+
         this.pdfService = pdfService;
+        this.textChunker = textChunker;
     }
 
     @PostMapping(
@@ -31,8 +38,10 @@ public class PdfController {
 
         String text = pdfService.extractText(tempFile);
 
+        List<String> chunks = textChunker.splitText(text, 1000);
+
         tempFile.delete();
 
-        return text;
+        return chunks.toString();
     }
 }
