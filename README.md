@@ -1,49 +1,37 @@
-# 🤖 AI Document Q&A — Spring AI + RAG
+# 🤖 AI Document Q&A — RAG with Spring AI
 
-A step-by-step learning project to understand how **LLMs, embeddings, vector databases, and RAG (Retrieval-Augmented Generation)** work together using Java and Spring Boot.
+A beginner-friendly **Retrieval-Augmented Generation (RAG)** project built using **Java, Spring Boot, Spring AI, PostgreSQL, PGVector, Ollama, and Google Gemini**.
+
+The goal of this project is to understand how modern AI document-question-answering systems work by building the complete RAG pipeline step by step.
 
 ---
 
 ## 🚀 Project Goal
 
-Build a simple application where a user can upload a document and ask questions about its content.
+Build an application where users can upload documents and ask questions about their content.
 
-### Final RAG Architecture
+The application follows this architecture:
 
 ```text
-                    PDF Document
-                         │
-                         ▼
-                  Text Extraction
-                         │
-                         ▼
-                     Chunking
-                         │
-                         ▼
-                    Embeddings
-                         │
-                         ▼
-                  PostgreSQL
-                    + pgvector
-                         │
-                         │
-User Question ───────────┘
-       │
-       ▼
- Question Embedding
-       │
-       ▼
- Similarity Search
-       │
-       ▼
- Relevant Chunks
-       │
-       ▼
-      LLM
-   Gemini 3.6 Flash
-       │
-       ▼
-     Answer
+PDF
+ ↓
+Text Extraction
+ ↓
+Text Chunking
+ ↓
+Embeddings
+ ↓
+Vector Database
+ ↓
+Similarity Search
+ ↓
+Relevant Chunks
+ ↓
+Context + Question
+ ↓
+Gemini LLM
+ ↓
+Final Answer
 ```
 
 ---
@@ -53,49 +41,54 @@ User Question ───────────┘
 * Java 21
 * Spring Boot 3.4.1
 * Spring AI 1.1.2
-* Google Gemini — Chat Model
-* Ollama — Embedding Model
-* `embeddinggemma` — Embedding Model
+* Google Gemini
+* Ollama
+* embeddinggemma
 * PostgreSQL
-* pgvector
+* PGVector
 * Apache PDFBox
 * Maven
 * Docker
-* IntelliJ IDEA
 * Postman
 
 ---
 
 # 📚 Learning Progress
 
-* [x] Lesson 1 — Spring Boot Setup
-* [x] Lesson 2 — LLM Integration with Gemini
-* [x] Lesson 3 — PDF Text Extraction
-* [x] Lesson 4 — Text Chunking
-* [x] Lesson 5 — Embeddings
-* [x] Lesson 6 — PostgreSQL + pgvector
-* [ ] Lesson 7 — Similarity Search
-* [ ] Lesson 8 — Complete RAG Pipeline
+| Lesson   | Topic                       | Status      |
+| -------- | --------------------------- | ----------- |
+| Lesson 1 | Spring Boot Setup           | ✅ Completed |
+| Lesson 2 | LLM Integration with Gemini | ✅ Completed |
+| Lesson 3 | PDF Text Extraction         | ✅ Completed |
+| Lesson 4 | Text Chunking               | ✅ Completed |
+| Lesson 5 | Embeddings with Ollama      | ✅ Completed |
+| Lesson 6 | PostgreSQL + PGVector       | ✅ Completed |
+| Lesson 7 | Similarity Search           | ✅ Completed |
+| Lesson 8 | Complete RAG Pipeline       | ✅ Completed |
 
 ---
 
 # 📖 Lesson 1 — Spring Boot Setup
 
-The first step was creating a basic Spring Boot application and understanding how a REST API works.
+Created a basic Spring Boot application and learned:
 
-### Basic Endpoint
+* Spring Boot project structure
+* REST Controllers
+* GET endpoints
+* Maven
+* Running a Spring Boot application
+
+Example:
 
 ```java
-@GetMapping("/hello")
-public String hello() {
-    return "Hello AI";
+@RestController
+public class HelloController {
+
+    @GetMapping("/hello")
+    public String hello() {
+        return "Hello AI";
+    }
 }
-```
-
-### Run the application
-
-```powershell
-.\mvnw spring-boot:run
 ```
 
 Test:
@@ -106,33 +99,11 @@ GET http://localhost:8080/hello
 
 ---
 
-# 🧠 Lesson 2 — LLM Integration
+# 🧠 Lesson 2 — LLM Integration with Gemini
 
-In this lesson, Spring AI was connected to **Google Gemini**.
+Integrated **Google Gemini** using Spring AI.
 
-The `ChatClient` provides a simple interface for sending prompts to an LLM.
-
-### Controller
-
-```java
-@RestController
-public class AiController {
-
-    private final ChatClient chatClient;
-
-    public AiController(ChatClient.Builder builder) {
-        this.chatClient = builder.build();
-    }
-
-    @GetMapping("/ai")
-    public String askAI(@RequestParam String question) {
-        return chatClient
-                .prompt(question)
-                .call()
-                .content();
-    }
-}
-```
+The application can send a question to Gemini and receive an AI-generated response.
 
 ### Configuration
 
@@ -142,28 +113,20 @@ spring.ai.google.genai.chat.options.model=gemini-3.6-flash
 spring.ai.model.chat=google-genai
 ```
 
-### Environment Variable
-
-`.env`
-
-```env
-GEMINI_API_KEY=your_api_key
-```
-
-The `.env` file should never be committed to GitHub.
-
-### Test
+API:
 
 ```text
 GET http://localhost:8080/ai?question=What is Kafka?
 ```
 
-### Key Concept
+### Basic Flow
 
 ```text
 User Question
       ↓
-Spring AI ChatClient
+Spring Boot
+      ↓
+Spring AI
       ↓
 Gemini
       ↓
@@ -174,9 +137,7 @@ AI Response
 
 # 📄 Lesson 3 — PDF Text Extraction
 
-The next step was extracting text from uploaded PDF documents.
-
-Apache PDFBox was used for PDF processing.
+Added Apache PDFBox to extract text from uploaded PDF documents.
 
 ### Dependency
 
@@ -188,35 +149,16 @@ Apache PDFBox was used for PDF processing.
 </dependency>
 ```
 
-### PDF Service
-
-```java
-@Service
-public class PdfService {
-
-    public String extractText(File file) throws IOException {
-
-        try (PDDocument document = Loader.loadPDF(file)) {
-
-            PDFTextStripper stripper = new PDFTextStripper();
-
-            return stripper.getText(document);
-        }
-    }
-}
-```
-
-### Flow
+Created:
 
 ```text
-PDF
- ↓
-PDFBox
- ↓
-Extracted Text
+PdfService
+PdfController
 ```
 
-### Endpoint
+The service loads a PDF and extracts its text.
+
+### API
 
 ```text
 POST http://localhost:8080/documents/upload
@@ -225,47 +167,62 @@ POST http://localhost:8080/documents/upload
 In Postman:
 
 ```text
-Body
- → form-data
- → key: file
- → type: File
- → select PDF
+Body → form-data
+
+key: file
+type: File
+```
+
+### Flow
+
+```text
+PDF
+ ↓
+MultipartFile
+ ↓
+Temporary File
+ ↓
+PDFBox
+ ↓
+Extracted Text
 ```
 
 ---
 
 # ✂️ Lesson 4 — Text Chunking
 
-Large documents cannot simply be sent directly to an LLM.
+Large documents cannot always be sent directly to an LLM.
 
-Therefore, the extracted text is divided into smaller pieces called **chunks**.
+Therefore, the extracted document text is divided into smaller pieces called **chunks**.
 
-### Simple Chunker
+Created:
+
+```text
+TextChunker
+```
+
+Current implementation uses a simple character-based chunking approach.
 
 ```java
-@Service
-public class TextChunker {
+public List<String> splitText(String text, int chunkSize) {
 
-    public List<String> splitText(String text, int chunkSize) {
+    List<String> chunks = new ArrayList<>();
 
-        List<String> chunks = new ArrayList<>();
+    for (int start = 0; start < text.length(); start += chunkSize) {
 
-        for (int start = 0; start < text.length(); start += chunkSize) {
+        int end = Math.min(start + chunkSize, text.length());
 
-            int end = Math.min(start + chunkSize, text.length());
-
-            chunks.add(text.substring(start, end));
-        }
-
-        return chunks;
+        chunks.add(text.substring(start, end));
     }
+
+    return chunks;
 }
 ```
 
-Currently, the project uses:
+Current chunk size:
 
 ```text
-Chunk size = 1000 characters
+1000 characters
 ```
 
 ### Example
@@ -273,30 +230,24 @@ Chunk size = 1000 characters
 ```text
 Large Document
       ↓
-1000 characters
-      ↓
 Chunk 1
-
-1000 characters
-      ↓
 Chunk 2
-
-1000 characters
-      ↓
 Chunk 3
+Chunk 4
+...
 ```
 
 ### Important
 
-This is a simple character-based chunking approach for learning.
+This is a simple implementation for learning.
 
-In a production RAG system, chunking can be improved using:
+Production RAG systems generally use smarter chunking strategies that consider:
 
-* Sentence boundaries
-* Paragraph boundaries
-* Chunk overlap
-* Token-based chunking
-* Semantic chunking
+* sentences
+* paragraphs
+* sections
+* chunk overlap
+* document structure
 
 ---
 
@@ -307,37 +258,20 @@ An embedding converts text into a numerical vector.
 For example:
 
 ```text
-"Java is a programming language"
-              ↓
-         Embedding Model
-              ↓
-[0.12, -0.45, 0.78, ...]
+"Java is a programming language."
+             ↓
+       Embedding Model
+             ↓
+      [0.12, -0.43, 0.87, ...]
 ```
 
-The important idea is that **similar meanings produce similar vectors**.
+These vectors allow the application to compare the **semantic meaning** of text.
 
-### Embedding Model
-
-Google Gemini was used for chat, but Ollama was selected for embeddings to avoid requiring Google Cloud/Vertex AI setup.
-
-Current embedding model:
+For this project:
 
 ```text
-embeddinggemma
-```
-
-### Ollama
-
-Ollama runs the embedding model locally.
-
-```text
-Text
- ↓
-Ollama
- ↓
-embeddinggemma
- ↓
-Vector
+Embedding Provider → Ollama
+Embedding Model    → embeddinggemma
 ```
 
 ### Configuration
@@ -367,57 +301,37 @@ public class EmbeddingService {
 }
 ```
 
-### Test Endpoint
+### Test
 
 ```text
 GET http://localhost:8080/embedding?text=Java is a programming language
 ```
 
-The application returns the number of dimensions in the generated vector.
-
-### Key Concept
-
-```text
-Text
- ↓
-Embedding Model
- ↓
-Numerical Vector
-```
-
 ---
 
-# 🗄️ Lesson 6 — PostgreSQL + pgvector
+# 🗄️ Lesson 6 — PostgreSQL + PGVector
 
-Now the generated embeddings need to be stored somewhere.
+Added PostgreSQL with the **PGVector** extension.
 
-For this project, **PostgreSQL + pgvector** is being used as the vector database.
+PGVector allows PostgreSQL to store and search vector embeddings.
 
-## Why pgvector?
-
-PostgreSQL normally stores relational data.
-
-The `pgvector` extension allows PostgreSQL to store and search vector embeddings.
+### Docker Container
 
 ```text
-PostgreSQL
-     +
- pgvector
-     ↓
-Vector Database
+Container Name: rag-postgres
+Database: ragdb
+Username: postgres
+Password: postgres
 ```
 
----
-
-## 🐳 Run PostgreSQL with Docker
-
-The project uses the Docker image:
+Docker port mapping:
 
 ```text
-pgvector/pgvector:pg17
+Windows: 5434
+Docker: 5432
 ```
 
-The Windows host port is **5434** because port `5433` was already being used by an existing local PostgreSQL installation.
+Run:
 
 ```powershell
 docker run --name rag-postgres `
@@ -428,84 +342,19 @@ docker run --name rag-postgres `
   -d pgvector/pgvector:pg17
 ```
 
-### Port Mapping
-
-```text
-Windows
-5434
-  ↓
-Docker
-5432
-  ↓
-PostgreSQL
-```
-
-Check the container:
-
-```powershell
-docker ps
-```
-
-Expected:
-
-```text
-0.0.0.0:5434->5432/tcp
-```
-
----
-
-## 🔌 Connect to PostgreSQL
+Enable the vector extension:
 
 ```powershell
 docker exec -it rag-postgres psql -U postgres -d ragdb
 ```
 
-Create the pgvector extension:
+Then:
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-Check installed extensions:
-
-```sql
-\dx
-```
-
-Exit:
-
-```sql
-\q
-```
-
----
-
-# 📦 Spring AI PGVector Dependency
-
-Add:
-
-```xml
-<dependency>
-    <groupId>org.springframework.ai</groupId>
-    <artifactId>spring-ai-starter-vector-store-pgvector</artifactId>
-</dependency>
-```
-
-PostgreSQL JDBC driver:
-
-```xml
-<dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-    <scope>runtime</scope>
-</dependency>
-```
-
----
-
-# ⚙️ PostgreSQL Configuration
-
-`application.properties`
+### Spring Configuration
 
 ```properties
 spring.datasource.url=jdbc:postgresql://127.0.0.1:5434/ragdb
@@ -515,9 +364,354 @@ spring.datasource.password=postgres
 spring.ai.vectorstore.pgvector.initialize-schema=true
 ```
 
-### Complete Provider Configuration
+---
+
+# 📦 Storing Documents in PGVector
+
+Created:
+
+```text
+VectorStoreService
+VectorController
+```
+
+Documents are converted into Spring AI `Document` objects:
+
+```java
+List<Document> documents = chunks.stream()
+        .map(Document::new)
+        .toList();
+
+vectorStore.add(documents);
+```
+
+API:
+
+```text
+POST http://localhost:8080/vector/save
+```
+
+Example:
+
+```json
+[
+  "Java is a programming language.",
+  "Spring Boot is used to build Java backend applications.",
+  "Kafka is a distributed event streaming platform."
+]
+```
+
+---
+
+# 🔍 Lesson 7 — Similarity Search
+
+Now we can search the vector database for documents that are semantically similar to a user's question.
+
+Created:
+
+```text
+SimilaritySearchService
+SimilaritySearchController
+```
+
+### Search Request
+
+```java
+SearchRequest searchRequest = SearchRequest.builder()
+        .query(query)
+        .topK(1)
+        .build();
+
+return vectorStore.similaritySearch(searchRequest);
+```
+
+### What is Top-K?
+
+`topK` specifies how many relevant documents should be returned.
+
+For example:
+
+```text
+topK(1)
+```
+
+means:
+
+```text
+Return the 1 most relevant document.
+```
+
+With:
+
+```text
+topK(3)
+```
+
+the system can return the 3 most relevant documents.
+
+### API
+
+```text
+GET http://localhost:8080/search?query=What is Kafka?
+```
+
+Example result:
+
+```json
+[
+    "Kafka is a distributed event streaming platform."
+]
+```
+
+### Retrieval Flow
+
+```text
+User Query
+    ↓
+Query Embedding
+    ↓
+PGVector
+    ↓
+Similarity Comparison
+    ↓
+Top-K Relevant Documents
+```
+
+---
+
+# 🤖 Lesson 8 — Complete RAG Pipeline
+
+This lesson connects everything together.
+
+The application now performs the complete **Retrieval-Augmented Generation** process.
+
+## Architecture
+
+```text
+                 User Question
+                       ↓
+                Similarity Search
+                       ↓
+                Relevant Chunks
+                       ↓
+                 Build Context
+                       ↓
+              Context + Question
+                       ↓
+                    Gemini
+                       ↓
+                 Final Answer
+```
+
+---
+
+## 1. Retrieval
+
+The question is first sent to the similarity search service.
+
+```java
+List<Document> documents =
+        similaritySearchService.search(question);
+```
+
+This retrieves the most relevant document chunks from PGVector.
+
+---
+
+## 2. Build Context
+
+The retrieved documents are converted into a single context string.
+
+```java
+String context = documents.stream()
+        .map(Document::getText)
+        .collect(Collectors.joining("\n\n"));
+```
+
+For example:
+
+```text
+Context:
+
+Kafka is a distributed event streaming platform.
+```
+
+---
+
+## 3. Create the RAG Prompt
+
+The context and user's question are combined:
+
+```java
+String prompt = """
+        Answer the question using only the context provided below.
+
+        If the answer is not present in the context,
+        say that you don't know based on the provided context.
+
+        Context:
+        %s
+
+        Question:
+        %s
+        """.formatted(context, question);
+```
+
+This is the **Augmentation** part of RAG.
+
+---
+
+## 4. Send Context to Gemini
+
+The final prompt is sent to Gemini:
+
+```java
+return chatClient
+        .prompt(prompt)
+        .call()
+        .content();
+```
+
+Gemini generates the final answer using the retrieved context.
+
+---
+
+# 🔄 Complete RAG Flow
+
+Suppose the user asks:
+
+```text
+What is Kafka?
+```
+
+The application performs:
+
+```text
+"What is Kafka?"
+        ↓
+Generate query embedding
+        ↓
+Search PGVector
+        ↓
+Find relevant chunk
+        ↓
+"Kafka is a distributed event streaming platform."
+        ↓
+Build prompt
+        ↓
+Send context + question to Gemini
+        ↓
+Generate answer
+```
+
+Example response:
+
+```text
+Kafka is a distributed event streaming platform.
+```
+
+---
+
+# 🧪 Testing the RAG API
+
+Start the application:
+
+```powershell
+.\mvnw clean
+.\mvnw spring-boot:run
+```
+
+Then:
+
+```text
+GET http://localhost:8080/rag?question=What is Kafka?
+```
+
+You can also test a question that is not contained in the stored documents:
+
+```text
+GET http://localhost:8080/rag?question=What is Python?
+```
+
+The prompt instructs Gemini to say that it does not know based on the provided context when the answer is not present.
+
+---
+
+# 🧩 Final Project Architecture
+
+```text
+                    ┌─────────────────┐
+                    │      User       │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │ Spring Boot API │
+                    └────────┬────────┘
+                             │
+                ┌────────────┴────────────┐
+                │                         │
+                ▼                         ▼
+        Document Upload             User Question
+                │                         │
+                ▼                         ▼
+           PDFBox                    Embedding
+                │                         │
+                ▼                         ▼
+          Text Chunking              PGVector
+                │                         │
+                ▼                         ▼
+            Embedding              Similarity Search
+                │                         │
+                ▼                         ▼
+             PGVector              Relevant Chunks
+                                          │
+                                          ▼
+                                     Build Context
+                                          │
+                                          ▼
+                                   Gemini 3.6 Flash
+                                          │
+                                          ▼
+                                     Final Answer
+```
+
+---
+
+# 📁 Important Project Structure
+
+```text
+src/
+└── main/
+    └── java/
+        └── com/example/ai_document_qa/
+            │
+            ├── controller/
+            │   ├── AiController.java
+            │   ├── PdfController.java
+            │   ├── EmbeddingController.java
+            │   ├── VectorController.java
+            │   ├── SimilaritySearchController.java
+            │   └── RagController.java
+            │
+            └── service/
+                ├── PdfService.java
+                ├── TextChunker.java
+                ├── EmbeddingService.java
+                ├── VectorStoreService.java
+                ├── SimilaritySearchService.java
+                └── RagService.java
+```
+
+---
+
+# ⚙️ Application Configuration
+
+Current important configuration:
 
 ```properties
+spring.application.name=ai-document-qa
+
 # PostgreSQL
 spring.datasource.url=jdbc:postgresql://127.0.0.1:5434/ragdb
 spring.datasource.username=postgres
@@ -526,186 +720,28 @@ spring.datasource.password=postgres
 # PGVector
 spring.ai.vectorstore.pgvector.initialize-schema=true
 
-# Gemini - Chat Model
+# Gemini Chat
 spring.ai.google.genai.api-key=${GEMINI_API_KEY}
 spring.ai.google.genai.chat.options.model=gemini-3.6-flash
+spring.ai.model.chat=google-genai
 
-# Ollama - Embedding Model
+# Ollama Embeddings
 spring.ai.ollama.base-url=http://localhost:11434
 spring.ai.model.embedding=ollama
 spring.ai.ollama.embedding.options.model=embeddinggemma
-
-# Chat Provider
-spring.ai.model.chat=google-genai
 ```
 
 ---
 
-# 💾 Store Documents in Vector Database
+# 🔐 Environment Variables
 
-Spring AI provides the `VectorStore` abstraction.
+Create a `.env` file:
 
-### VectorStore Service
-
-```java
-@Service
-public class VectorStoreService {
-
-    private final VectorStore vectorStore;
-
-    public VectorStoreService(VectorStore vectorStore) {
-        this.vectorStore = vectorStore;
-    }
-
-    public void saveChunks(List<String> chunks) {
-
-        List<Document> documents = chunks.stream()
-                .map(Document::new)
-                .toList();
-
-        vectorStore.add(documents);
-    }
-}
+```env
+GEMINI_API_KEY=your_api_key
 ```
 
-### Controller
-
-```java
-@RestController
-@RequestMapping("/vector")
-public class VectorController {
-
-    private final VectorStoreService vectorStoreService;
-
-    public VectorController(VectorStoreService vectorStoreService) {
-        this.vectorStoreService = vectorStoreService;
-    }
-
-    @PostMapping("/save")
-    public String save(@RequestBody List<String> chunks) {
-
-        vectorStoreService.saveChunks(chunks);
-
-        return "Chunks saved successfully";
-    }
-}
-```
-
-### Test Request
-
-```text
-POST http://localhost:8080/vector/save
-```
-
-Body → raw → JSON:
-
-```json
-[
-    "Java is a programming language.",
-    "Spring Boot is used to build Java backend applications.",
-    "Kafka is a distributed event streaming platform."
-]
-```
-
----
-
-# 🔍 What Happens Internally?
-
-When chunks are added to the `VectorStore`:
-
-```text
-Chunk
- ↓
-Embedding Model
- ↓
-Vector
- ↓
-PostgreSQL + pgvector
-```
-
-Spring AI handles the interaction with the embedding model and vector store.
-
----
-
-# 🧠 Current Architecture
-
-At the end of Lesson 6, the project has learned these individual components:
-
-```text
-PDF
- ↓
-Text Extraction
- ↓
-Text Chunks
- ↓
-Embeddings
- ↓
-PostgreSQL + pgvector
-```
-
-The missing part is retrieving the most relevant chunks for a user's question.
-
----
-
-# 🔜 Lesson 7 — Similarity Search
-
-The next lesson will implement:
-
-```text
-User Question
-      ↓
-Question Embedding
-      ↓
-Vector Similarity Search
-      ↓
-pgvector
-      ↓
-Most Relevant Chunks
-```
-
-For example:
-
-```text
-Question:
-"What is Kafka?"
-        ↓
-Embedding
-        ↓
-Search Vector Database
-        ↓
-Relevant Chunk:
-"Kafka is a distributed event streaming platform..."
-```
-
----
-
-# 🎯 Lesson 8 — Complete RAG
-
-Finally, the retrieved chunks will be sent to Gemini along with the user's question.
-
-```text
-User Question
-      ↓
-Embedding
-      ↓
-Similarity Search
-      ↓
-Relevant Documents
-      ↓
-Context + Question
-      ↓
-Gemini
-      ↓
-Final Answer
-```
-
-This is the complete **Retrieval-Augmented Generation (RAG)** pipeline.
-
----
-
-# 🔐 Security
-
-Never commit API keys or secrets.
+Do **not** commit your API key to GitHub.
 
 `.gitignore`:
 
@@ -717,64 +753,109 @@ target/
 .vscode/
 ```
 
-Keep:
+---
 
-```env
-GEMINI_API_KEY=your_api_key
-```
+# 🧠 Key Concepts Learned
 
-inside `.env` and never push it to GitHub.
+Through Lessons 1–8, this project covers:
+
+* Spring Boot REST APIs
+* LLMs
+* Google Gemini
+* Spring AI
+* PDF processing
+* Text chunking
+* Embeddings
+* Vector databases
+* PostgreSQL
+* PGVector
+* Ollama
+* Semantic similarity search
+* Top-K retrieval
+* Context injection
+* Prompt construction
+* Retrieval-Augmented Generation
 
 ---
 
-# 📌 Key Concepts Learned
+# 🎯 Current Status
 
-### LLM
-
-A Large Language Model generates responses based on the input prompt.
-
-### Embedding
-
-Converts text into numerical vectors representing its meaning.
-
-### Vector Database
-
-Stores embeddings and allows similarity searches.
-
-### pgvector
-
-PostgreSQL extension for storing and searching vectors.
-
-### RAG
-
-Combines retrieval from external knowledge with LLM generation.
+The project now has a working basic RAG pipeline:
 
 ```text
-Retrieve relevant information
-             +
-Generate answer using LLM
-             =
-             RAG
+PDF
+ ↓
+Extract Text
+ ↓
+Chunk Text
+ ↓
+Generate Embeddings
+ ↓
+Store in PGVector
+ ↓
+Similarity Search
+ ↓
+Retrieve Relevant Chunks
+ ↓
+Build Context
+ ↓
+Send to Gemini
+ ↓
+Generate Answer
 ```
+
+## ✅ Lessons 1–8 Completed
+
+The fundamental RAG workflow is now implemented manually so that each individual step can be understood.
 
 ---
 
-# 🏁 Current Status
+# 🚀 Future Improvements
 
-**Completed:** Lessons 1–6 ✅
+Possible next lessons:
 
-The application currently has:
+* Improve chunking with overlap
+* Better semantic chunking
+* Automatically process uploaded PDFs
+* Automatically generate embeddings
+* Automatically save documents to PGVector
+* Metadata and source tracking
+* Similarity thresholds
+* Retrieve multiple chunks with Top-K
+* Improve RAG prompts
+* Spring AI RAG Advisors
+* `QuestionAnswerAdvisor`
+* Source citations
+* Conversation memory
+* Multiple document support
+* RAG evaluation
+* Production-ready architecture
+* Dockerize the complete application
+* Build a frontend for document upload and Q&A
 
-* Spring Boot REST API
-* Gemini LLM integration
-* PDF text extraction
-* Text chunking
-* Ollama embeddings
-* `embeddinggemma`
-* PostgreSQL
-* pgvector
-* Spring AI VectorStore
-* Docker-based PostgreSQL
+---
 
-**Next:** Similarity Search → Complete RAG 🚀
+# 📌 What I Learned
+
+The most important concept from this project is:
+
+```text
+LLM alone
+    ↓
+Generates answers from its existing knowledge
+
+RAG
+    ↓
+Retrieve relevant information
+    ↓
+Give that information to the LLM
+    ↓
+Generate a grounded answer
+```
+
+In simple terms:
+
+> **RAG = Search relevant information + Give it to the LLM + Generate an answer**
+
+This project is built step by step to understand what happens inside a RAG application instead of directly using a high-level abstraction.
 
